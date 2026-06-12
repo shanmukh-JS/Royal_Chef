@@ -1,5 +1,4 @@
 const express = require('express');
-const { body } = require('express-validator');
 const {
   login,
   getStats,
@@ -9,20 +8,13 @@ const {
 } = require('../controllers/adminController');
 
 const { protectAdmin } = require('../middleware/authMiddleware');
-const { validate } = require('../middleware/validationMiddleware');
 
 const router = express.Router();
 
-router.post(
-  '/login',
-  [
-    body('email').isEmail(),
-    body('password').notEmpty()
-  ],
-  validate,
-  login
-);
+// TEMPORARY: Browser testing
+router.get('/login', login);
 
+// Protected Routes
 router.get('/dashboard/stats', protectAdmin, getStats);
 router.get('/reports/daily', protectAdmin, getDailyReport);
 router.get('/reports/weekly', protectAdmin, getWeeklyReport);
