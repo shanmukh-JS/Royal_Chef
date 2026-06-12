@@ -1,28 +1,44 @@
 const express = require('express');
-const { body } = require('express-validator');
-const { login, getStats, getDailyReport, getWeeklyReport, getMonthlyReport } = require('../controllers/adminController');
 const { protectAdmin } = require('../middleware/authMiddleware');
-const { validate } = require('../middleware/validationMiddleware');
 
 const router = express.Router();
 
-// Admin Login
-router.post(
-  '/login',
-  [
-    body('email').isEmail().withMessage('Please enter a valid email address'),
-    body('password').notEmpty().withMessage('Password is required')
-  ],
-  validate,
-  login
-);
+// TEST LOGIN ROUTE
+router.post('/login', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Login route works'
+  });
+});
 
-// Stats & Dashboard Data (Secured)
-router.get('/dashboard/stats', protectAdmin, getStats);
+// TEST DASHBOARD ROUTE
+router.get('/dashboard/stats', protectAdmin, (req, res) => {
+  res.json({
+    success: true,
+    message: 'Dashboard route works'
+  });
+});
 
-// Sales Reports Data (Secured)
-router.get('/reports/daily', protectAdmin, getDailyReport);
-router.get('/reports/weekly', protectAdmin, getWeeklyReport);
-router.get('/reports/monthly', protectAdmin, getMonthlyReport);
+// TEST REPORT ROUTES
+router.get('/reports/daily', protectAdmin, (req, res) => {
+  res.json({
+    success: true,
+    report: []
+  });
+});
+
+router.get('/reports/weekly', protectAdmin, (req, res) => {
+  res.json({
+    success: true,
+    report: []
+  });
+});
+
+router.get('/reports/monthly', protectAdmin, (req, res) => {
+  res.json({
+    success: true,
+    report: []
+  });
+});
 
 module.exports = router;
