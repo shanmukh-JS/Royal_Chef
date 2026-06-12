@@ -15,9 +15,9 @@ const router = express.Router();
 router.post('/login', login);
 
 // Protected Routes
-router.get('/dashboard/stats', protectAdmin, getStats);
-router.get('/reports/daily', protectAdmin, getDailyReport);
-router.get('/reports/weekly', protectAdmin, getWeeklyReport);
-router.get('/reports/monthly', protectAdmin, getMonthlyReport);
+router.post('/dashboard/stats', protectAdmin, getStats);
+router.post('/reports/daily', protectAdmin, getDailyReport);
+router.post('/reports/weekly', protectAdmin, getWeeklyReport);
+router.post('/reports/monthly', protectAdmin, getMonthlyReport);
 
 module.exports = router;
