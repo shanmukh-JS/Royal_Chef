@@ -70,7 +70,10 @@ export default function OrderTracking() {
     );
   }
 
-  const activeIndex = statusMilestones.indexOf(order.status);
+  const activeIndex = Math.max(
+    0,
+    statusMilestones.indexOf(order?.status || 'Received')
+  );
   const progressPercentage = (activeIndex / (statusMilestones.length - 1)) * 100;
 
   // Visual text mapping for each status stage
@@ -207,13 +210,13 @@ export default function OrderTracking() {
                 <span className="text-restaurant-muted">
                   {item.name} <strong className="text-restaurant-dark ml-1">x {item.quantity}</strong>
                 </span>
-                <span className="font-semibold text-restaurant-dark">₹{(item.price * item.quantity).toFixed(2)}</span>
+                <span className="font-semibold text-restaurant-dark">₹{(parseFloat(item.price || 0) * item.quantity).toFixed(2)}</span>
               </div>
             ))}
             
             <div className="border-t border-restaurant-gold/10 pt-2 flex justify-between font-bold text-xs text-restaurant-dark">
               <span>Grand Total</span>
-              <span className="text-restaurant-accent">₹{order.total_amount?.toFixed(2)}</span>
+              <span className="text-restaurant-accent">₹{parseFloat(order.total_amount || 0).toFixed(2)}</span>
             </div>
           </div>
         </div>
