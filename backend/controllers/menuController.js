@@ -2,190 +2,183 @@ const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
 
-// Get All Menu Items (supports search & category filters)
+// Get All Menu Items
 const getMenu = async (req, res, next) => {
-  try {
-    const { category, search } = req.query;
-    let sql = 'SELECT * FROM menu_items WHERE 1=1';
-    const params = [];
+try {
+const result = await db.query(
+'SELECT * FROM menu_items ORDER BY category, name'
+);
 
-    if (category) {
-      sql += ' AND category = ?';
-      params.push(category);
-    }
+```
+const menu = result.rows.map(item => ({
+  ...item,
+  price: parseFloat(item.price),
+  image_url: item.image_url
+    ? (item.image_url.startsWith('http')
+        ? item.image_url
+        : `${req.protocol}://${req.get('host')}${item.image_url}`)
+    : null
+}));
 
-    if (search) {
-      sql += ' AND (name LIKE ? OR description LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`);
-    }
+res.json({
+  success: true,
+  menu
+});
+```
 
-    sql += ' ORDER BY category, name';
-
-    const [rows] = await db.query(sql, params);
-    
-    // Map standard availability to boolean and construct full image URLs
-    const menu = rows.map(item => ({
-      ...item,
-      price: parseFloat(item.price),
-      available: item.available === 1,
-      image_url: item.image_url ? (item.image_url.startsWith('http') ? item.image_url : `${req.protocol}://${req.get('host')}${item.image_url}`) : null
-    }));
-
-    res.json({
-      success: true,
-      menu
-    });
-  } catch (error) {
-    next(error);
-  }
+} catch (error) {
+next(error);
+}
 };
 
-// Get Single Menu Item by ID
+// Get Menu Item By ID
 const getMenuItemById = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const [rows] = await db.query('SELECT * FROM menu_items WHERE id = ?', [id]);
+try {
+const result = await db.query(
+'SELECT * FROM menu_items WHERE id = $1',
+[req.params.id]
+);
 
-    if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Menu item not found'
-      });
-    }
+```
+if (result.rows.length === 0) {
+  return res.status(404).json({
+    success: false,
+    message: 'Menu item not found'
+  });
+}
 
-    const item = {
-      ...rows[0],
-      price: parseFloat(rows[0].price),
-      available: rows[0].available === 1,
-      image_url: rows[0].image_url ? (rows[0].image_url.startsWith('http') ? rows[0].image_url : `${req.protocol}://${req.get('host')}${rows[0].image_url}`) : null
-    };
+res.json({
+  success: true,
+  item: result.rows[0]
+});
+```
 
-    res.json({
-      success: true,
-      item
-    });
-  } catch (error) {
-    next(error);
-  }
+} catch (error) {
+next(error);
+}
 };
 
 // Create Menu Item
 const createMenuItem = async (req, res, next) => {
-  try {
-    const { name, description, price, category, available } = req.body;
-    let imageUrl = null;
+try {
+const { name, description, price, category, available } = req.body;
 
-    if (req.file) {
-      imageUrl = `/uploads/${req.file.filename}`;
-    }
+```
+let imageUrl = null;
 
-    const isAvailable = available === 'false' || available === '0' || available === 0 ? 0 : 1;
+if (req.file) {
+  imageUrl = `/uploads/${req.file.filename}`;
+}
 
-    const [result] = await db.query(
-      'INSERT INTO menu_items (name, description, price, category, image_url, available) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, description, parseFloat(price), category, imageUrl, isAvailable]
-    );
+const result = await db.query(
+  `INSERT INTO menu_items
+  (name, description, price, category, image_url, available)
+  VALUES ($1,$2,$3,$4,$5,$6)
+  RETURNING id`,
+  [
+    name,
+    description,
+    price,
+    category,
+    imageUrl,
+    available !== false
+  ]
+);
 
-    res.status(201).json({
-      success: true,
-      message: 'Menu item created successfully',
-      itemId: result.insertId
-    });
-  } catch (error) {
-    next(error);
-  }
+res.status(201).json({
+  success: true,
+  itemId: result.rows[0].id
+});
+```
+
+} catch (error) {
+next(error);
+}
 };
 
 // Update Menu Item
 const updateMenuItem = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { name, description, price, category, available } = req.body;
+try {
+const { id } = req.params;
 
-    const [existing] = await db.query('SELECT * FROM menu_items WHERE id = ?', [id]);
-    if (existing.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Menu item not found'
-      });
-    }
+```
+const existing = await db.query(
+  'SELECT * FROM menu_items WHERE id = $1',
+  [id]
+);
 
-    let imageUrl = existing[0].image_url;
-    if (req.file) {
-      imageUrl = `/uploads/${req.file.filename}`;
-      
-      // Attempt to delete old image if it is local
-      if (existing[0].image_url && existing[0].image_url.startsWith('/uploads/')) {
-        const oldPath = path.join(__dirname, '..', existing[0].image_url);
-        fs.unlink(oldPath, (err) => {
-          if (err) console.error('Error deleting old menu image file:', err.message);
-        });
-      }
-    }
+if (existing.rows.length === 0) {
+  return res.status(404).json({
+    success: false,
+    message: 'Menu item not found'
+  });
+}
 
-    const isAvailable = available === 'false' || available === '0' || available === 0 ? 0 : 1;
+let imageUrl = existing.rows[0].image_url;
 
-    await db.query(
-      'UPDATE menu_items SET name = ?, description = ?, price = ?, category = ?, image_url = ?, available = ? WHERE id = ?',
-      [name, description, parseFloat(price), category, imageUrl, isAvailable, id]
-    );
+if (req.file) {
+  imageUrl = `/uploads/${req.file.filename}`;
+}
 
-    res.json({
-      success: true,
-      message: 'Menu item updated successfully'
-    });
-  } catch (error) {
-    next(error);
-  }
+const { name, description, price, category, available } = req.body;
+
+await db.query(
+  `UPDATE menu_items
+   SET name=$1,
+       description=$2,
+       price=$3,
+       category=$4,
+       image_url=$5,
+       available=$6
+   WHERE id=$7`,
+  [
+    name,
+    description,
+    price,
+    category,
+    imageUrl,
+    available,
+    id
+  ]
+);
+
+res.json({
+  success: true,
+  message: 'Menu item updated successfully'
+});
+```
+
+} catch (error) {
+next(error);
+}
 };
 
 // Delete Menu Item
 const deleteMenuItem = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+try {
+const { id } = req.params;
 
-    const [existing] = await db.query('SELECT * FROM menu_items WHERE id = ?', [id]);
-    if (existing.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Menu item not found'
-      });
-    }
+```
+await db.query(
+  'DELETE FROM menu_items WHERE id = $1',
+  [id]
+);
 
-    // Try deleting. If foreign key constraint fails, handle it gracefully.
-    try {
-      await db.query('DELETE FROM menu_items WHERE id = ?', [id]);
+res.json({
+  success: true,
+  message: 'Menu item deleted successfully'
+});
+```
 
-      // Delete image if it is local
-      if (existing[0].image_url && existing[0].image_url.startsWith('/uploads/')) {
-        const imagePath = path.join(__dirname, '..', existing[0].image_url);
-        fs.unlink(imagePath, (err) => {
-          if (err) console.error('Error deleting image file:', err.message);
-        });
-      }
-
-      res.json({
-        success: true,
-        message: 'Menu item deleted successfully'
-      });
-    } catch (dbError) {
-      if (dbError.code === 'ER_ROW_IS_REFERENCED_2' || dbError.errno === 1451) {
-        return res.status(400).json({
-          success: false,
-          message: 'Cannot delete this menu item because it is referenced in past customer orders. Please disable availability instead.'
-        });
-      }
-      throw dbError;
-    }
-  } catch (error) {
-    next(error);
-  }
+} catch (error) {
+next(error);
+}
 };
 
 module.exports = {
-  getMenu,
-  getMenuItemById,
-  createMenuItem,
-  updateMenuItem,
-  deleteMenuItem
+getMenu,
+getMenuItemById,
+createMenuItem,
+updateMenuItem,
+deleteMenuItem
 };

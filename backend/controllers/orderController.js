@@ -1,182 +1,171 @@
 const db = require('../config/db');
 
-// Place Customer Order (SQL Transaction)
+// Create Order
 const createOrder = async (req, res, next) => {
-  const connection = await db.getConnection();
-  try {
-    await connection.beginTransaction();
+const client = await db.connect();
 
-    const { customer_name, mobile_number, table_number, items } = req.body;
+try {
+await client.query('BEGIN');
 
-    if (!items || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Your cart is empty. Please add items to checkout.'
-      });
-    }
+```
+const { customer_name, mobile_number, table_number, items } = req.body;
 
-    let totalAmount = 0;
-    const resolvedItems = [];
+let totalAmount = 0;
 
-    // Retrieve active prices from the database to prevent client manipulation
-    for (const item of items) {
-      const [menuRows] = await connection.query(
-        'SELECT name, price, available FROM menu_items WHERE id = ?',
-        [item.menu_item_id]
-      );
+for (const item of items) {
+  const menuResult = await client.query(
+    'SELECT * FROM menu_items WHERE id = $1',
+    [item.menu_item_id]
+  );
 
-      if (menuRows.length === 0) {
-        throw new Error(`Item ${item.name || 'with ID ' + item.menu_item_id} no longer exists in our menu.`);
-      }
+  if (menuResult.rows.length === 0) {
+    throw new Error('Menu item not found');
+  }
 
-      const dbItem = menuRows[0];
-      if (dbItem.available === 0) {
-        throw new Error(`"${dbItem.name}" is currently sold out. Please remove it and try again.`);
-      }
+  const menuItem = menuResult.rows[0];
 
-      const itemPrice = parseFloat(dbItem.price);
-      const itemQty = parseInt(item.quantity, 10);
-      totalAmount += itemPrice * itemQty;
+  totalAmount += Number(menuItem.price) * item.quantity;
+}
 
-      resolvedItems.push({
-        menu_item_id: item.menu_item_id,
-        quantity: itemQty,
-        price: itemPrice
-      });
-    }
+const orderResult = await client.query(
+  `INSERT INTO orders
+  (customer_name,mobile_number,table_number,total_amount,status)
+  VALUES($1,$2,$3,$4,$5)
+  RETURNING id`,
+  [
+    customer_name,
+    mobile_number,
+    table_number,
+    totalAmount,
+    'Received'
+  ]
+);
 
-    // Insert order header
-    const [orderResult] = await connection.query(
-      'INSERT INTO orders (customer_name, mobile_number, table_number, total_amount, status) VALUES (?, ?, ?, ?, ?)',
-      [customer_name, mobile_number, table_number, totalAmount, 'Received']
-    );
+const orderId = orderResult.rows[0].id;
 
-    const orderId = orderResult.insertId;
+for (const item of items) {
+  const menuResult = await client.query(
+    'SELECT price FROM menu_items WHERE id = $1',
+    [item.menu_item_id]
+  );
 
-    // Insert order items
-    for (const rItem of resolvedItems) {
-      await connection.query(
-        'INSERT INTO order_items (order_id, menu_item_id, quantity, price) VALUES (?, ?, ?, ?)',
-        [orderId, rItem.menu_item_id, rItem.quantity, rItem.price]
-      );
-    }
-
-    // Commit Transaction
-    await connection.commit();
-
-    res.status(201).json({
-      success: true,
-      message: 'Your order has been placed successfully.',
+  await client.query(
+    `INSERT INTO order_items
+    (order_id,menu_item_id,quantity,price)
+    VALUES($1,$2,$3,$4)`,
+    [
       orderId,
-      totalAmount
-    });
+      item.menu_item_id,
+      item.quantity,
+      menuResult.rows[0].price
+    ]
+  );
+}
 
-  } catch (error) {
-    await connection.rollback();
-    res.status(400).json({
-      success: false,
-      message: error.message || 'Failed to place the order.'
-    });
-  } finally {
-    connection.release();
-  }
+await client.query('COMMIT');
+
+res.status(201).json({
+  success: true,
+  orderId,
+  totalAmount
+});
+```
+
+} catch (error) {
+await client.query('ROLLBACK');
+next(error);
+} finally {
+client.release();
+}
 };
 
-// Get All Orders (Admin only)
+// Get Orders
 const getOrders = async (req, res, next) => {
-  try {
-    const [rows] = await db.query('SELECT * FROM orders ORDER BY created_at DESC');
-    
-    res.json({
-      success: true,
-      orders: rows
-    });
-  } catch (error) {
-    next(error);
-  }
+try {
+const result = await db.query(
+'SELECT * FROM orders ORDER BY created_at DESC'
+);
+
+```
+res.json({
+  success: true,
+  orders: result.rows
+});
+```
+
+} catch (error) {
+next(error);
+}
 };
 
-// Get Order and Item Details by ID (Tracking / Admin Detail View)
+// Get Order By ID
 const getOrderById = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+try {
+const orderResult = await db.query(
+'SELECT * FROM orders WHERE id = $1',
+[req.params.id]
+);
 
-    const [orderRows] = await db.query('SELECT * FROM orders WHERE id = ?', [id]);
-    if (orderRows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
+```
+if (orderResult.rows.length === 0) {
+  return res.status(404).json({
+    success: false,
+    message: 'Order not found'
+  });
+}
 
-    const order = orderRows[0];
+const itemsResult = await db.query(
+  `SELECT oi.*, mi.name, mi.image_url
+   FROM order_items oi
+   JOIN menu_items mi ON oi.menu_item_id = mi.id
+   WHERE oi.order_id = $1`,
+  [req.params.id]
+);
 
-    const [itemRows] = await db.query(
-      `SELECT oi.id, oi.menu_item_id, oi.quantity, oi.price, mi.name, mi.image_url
-       FROM order_items oi
-       JOIN menu_items mi ON oi.menu_item_id = mi.id
-       WHERE oi.order_id = ?`,
-      [id]
-    );
-
-    const items = itemRows.map(item => ({
-      ...item,
-      price: parseFloat(item.price),
-      subtotal: parseFloat(item.price) * item.quantity,
-      image_url: item.image_url ? (item.image_url.startsWith('http') ? item.image_url : `${req.protocol}://${req.get('host')}${item.image_url}`) : null
-    }));
-
-    res.json({
-      success: true,
-      order: {
-        ...order,
-        total_amount: parseFloat(order.total_amount),
-        items
-      }
-    });
-  } catch (error) {
-    next(error);
+res.json({
+  success: true,
+  order: {
+    ...orderResult.rows[0],
+    items: itemsResult.rows
   }
+});
+```
+
+} catch (error) {
+next(error);
+}
 };
 
-// Update Order Status (Admin only)
+// Update Order Status
 const updateOrderStatus = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
+try {
+const result = await db.query(
+'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
+[req.body.status, req.params.id]
+);
 
-    const validStatuses = ['Received', 'Preparing', 'Ready', 'Served'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid status value. Must be Received, Preparing, Ready, or Served.'
-      });
-    }
+```
+if (result.rows.length === 0) {
+  return res.status(404).json({
+    success: false,
+    message: 'Order not found'
+  });
+}
 
-    const [result] = await db.query(
-      'UPDATE orders SET status = ? WHERE id = ?',
-      [status, id]
-    );
+res.json({
+  success: true,
+  message: 'Order status updated successfully'
+});
+```
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      message: `Order status updated to ${status} successfully.`
-    });
-  } catch (error) {
-    next(error);
-  }
+} catch (error) {
+next(error);
+}
 };
 
 module.exports = {
-  createOrder,
-  getOrders,
-  getOrderById,
-  updateOrderStatus
+createOrder,
+getOrders,
+getOrderById,
+updateOrderStatus
 };
