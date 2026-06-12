@@ -1,4 +1,4 @@
-```js
+
 const db = require('../config/db');
 
 // TEMP LOGIN
@@ -78,4 +78,4 @@ module.exports = {
   getWeeklyReport,
   getMonthlyReport
 };
-```
+
