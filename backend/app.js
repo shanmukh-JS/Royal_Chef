@@ -11,14 +11,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// TEST ROUTE
-app.get('/api/admin/login', (req, res) => {
-  res.json({
-    success: true,
-    message: 'ADMIN LOGIN ROUTE FOUND'
-  });
-});
-
 // IMPORT ROUTES
 const adminRoutes = require('./routes/adminRoutes');
 const menuRoutes = require('./routes/menuRoutes');
