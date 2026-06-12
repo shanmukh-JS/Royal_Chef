@@ -65,21 +65,19 @@ export default function Checkout() {
       });
 
       if (res.data.success) {
-        toast.success('Order placed successfully!');
-        const orderId = res.data.orderId;
-        const total = res.data.totalAmount;
-        
-        // Mark success to prevent empty cart useEffect redirect
-        setIsSuccess(true);
-        
-        // Clear cart context
-        clearCart();
-        
-        // Move to order success page
-        navigate(`/success?orderId=${orderId}&total=${total}`);
-      } else {
-        toast.error(res.data.message || 'Failed to place the order.');
-      }
+  toast.success('Order placed successfully!');
+
+  const orderId = res.data.orderId;
+
+  setIsSuccess(true);
+
+  clearCart();
+
+  navigate(`/track/${orderId}`);
+
+} else {
+  toast.error(res.data.message || 'Failed to place the order.');
+}
     } catch (err) {
       console.error('Checkout failed:', err);
       toast.error(err.response?.data?.message || 'Checkout failed. Please try again.');
