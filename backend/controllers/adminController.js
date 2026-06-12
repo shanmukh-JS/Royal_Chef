@@ -1,3 +1,19 @@
+```js
+const db = require('../config/db');
+
+// TEMP LOGIN
+const login = async (req, res) => {
+  res.json({
+    success: true,
+    token: 'test-token',
+    admin: {
+      id: 1,
+      name: 'Restaurant Admin',
+      email: 'admin@restaurant.com'
+    }
+  });
+};
+
 const getStats = async (req, res, next) => {
   try {
     const totalOrders = await db.query(
@@ -33,3 +49,33 @@ const getStats = async (req, res, next) => {
     next(error);
   }
 };
+
+const getDailyReport = async (req, res) => {
+  res.json({
+    success: true,
+    report: []
+  });
+};
+
+const getWeeklyReport = async (req, res) => {
+  res.json({
+    success: true,
+    report: []
+  });
+};
+
+const getMonthlyReport = async (req, res) => {
+  res.json({
+    success: true,
+    report: []
+  });
+};
+
+module.exports = {
+  login,
+  getStats,
+  getDailyReport,
+  getWeeklyReport,
+  getMonthlyReport
+};
+```
