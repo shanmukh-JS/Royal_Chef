@@ -1,8 +1,8 @@
 const express = require('express');
 
-console.log('ADMIN ROUTES LOADED');
-
 const router = express.Router();
+
+console.log('ADMIN ROUTES LOADED');
 
 router.get('/', (req, res) => {
   res.json({
@@ -11,10 +11,18 @@ router.get('/', (req, res) => {
   });
 });
 
+router.get('/login', (req, res) => {
+  res.json({
+    success: true,
+    message: 'ADMIN LOGIN ROUTE FOUND'
+  });
+});
+
 router.post('/login', (req, res) => {
   res.json({
     success: true,
-    message: 'LOGIN ROUTE WORKS'
+    message: 'POST LOGIN WORKS',
+    body: req.body
   });
 });
 
