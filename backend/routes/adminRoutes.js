@@ -5,6 +5,6 @@ const router = express.Router();
 
 console.log('ADMIN ROUTES LOADED');
 
-router.get('/login', login);
+router.post('/login', login);
 
 module.exports = router;
