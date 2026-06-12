@@ -1,0 +1,272 @@
+{
+  "info": {
+    "_postman_id": "c138f6b7-dc2c-4993-8b7a-cfb3e1074a3f",
+    "name": "Smart Restaurant Self-Ordering System API",
+    "description": "API collection for table-service QR ordering and administrator control dashboards.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Admin Auth",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@restaurant.com\",\n  \"password\": \"AdminPassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/login",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Menu Management",
+      "item": [
+        {
+          "name": "Get Full Menu",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/menu?category=Starters&search=Paneer",
+              "host": ["{{base_url}}"],
+              "path": ["menu"],
+              "query": [
+                { "key": "category", "value": "Starters" },
+                { "key": "search", "value": "Paneer" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Menu Item by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/menu/1",
+              "host": ["{{base_url}}"],
+              "path": ["menu", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Menu Item (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Garlic Bread", "type": "text" },
+                { "key": "description", "value": "Crispy toasted bread with fresh garlic butter.", "type": "text" },
+                { "key": "price", "value": "6.99", "type": "text" },
+                { "key": "category", "value": "Starters", "type": "text" },
+                { "key": "available", "value": "1", "type": "text" },
+                { "key": "image", "type": "file", "src": "/path/to/image.jpg" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/menu",
+              "host": ["{{base_url}}"],
+              "path": ["menu"]
+            }
+          }
+        },
+        {
+          "name": "Update Menu Item (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Garlic Bread with Cheese", "type": "text" },
+                { "key": "description", "value": "Crispy toasted bread topped with mozzarella.", "type": "text" },
+                { "key": "price", "value": "7.99", "type": "text" },
+                { "key": "category", "value": "Starters", "type": "text" },
+                { "key": "available", "value": "1", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/menu/24",
+              "host": ["{{base_url}}"],
+              "path": ["menu", "24"]
+            }
+          }
+        },
+        {
+          "name": "Delete Menu Item (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/menu/24",
+              "host": ["{{base_url}}"],
+              "path": ["menu", "24"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Place Customer Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_name\": \"John Doe\",\n  \"mobile_number\": \"9876543210\",\n  \"table_number\": \"5\",\n  \"items\": [\n    { \"menu_item_id\": 1, \"quantity\": 1 },\n    { \"menu_item_id\": 6, \"quantity\": 2 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "Get All Orders (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": ["{{base_url}}"],
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "Track Order by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/orders/1001",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1001"]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Preparing\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/1001/status",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "1001", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics & Reports",
+      "item": [
+        {
+          "name": "Get Dashboard Stats (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/stats",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Daily Sales Report (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/daily",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "reports", "daily"]
+            }
+          }
+        },
+        {
+          "name": "Get Weekly Sales Report (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/weekly",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "reports", "weekly"]
+            }
+          }
+        },
+        {
+          "name": "Get Monthly Sales Report (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/reports/monthly",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "reports", "monthly"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": { "type": "text/javascript", "exec": [""] }
+    },
+    {
+      "listen": "test",
+      "script": { "type": "text/javascript", "exec": [""] }
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:5000/api", "type": "string" },
+    { "key": "jwt_token", "value": "your_jwt_token_here", "type": "string" }
+  ]
+}
