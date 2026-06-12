@@ -11,13 +11,15 @@ const { protectAdmin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// LOGIN ROUTE
+// LOGIN
 router.post('/login', login);
 
-// Protected Routes
-router.post('/dashboard/stats', protectAdmin, getStats);
-router.post('/reports/daily', protectAdmin, getDailyReport);
-router.post('/reports/weekly', protectAdmin, getWeeklyReport);
-router.post('/reports/monthly', protectAdmin, getMonthlyReport);
+// DASHBOARD
+router.get('/dashboard/stats', protectAdmin, getStats);
+
+// REPORTS
+router.get('/reports/daily', protectAdmin, getDailyReport);
+router.get('/reports/weekly', protectAdmin, getWeeklyReport);
+router.get('/reports/monthly', protectAdmin, getMonthlyReport);
 
 module.exports = router;
