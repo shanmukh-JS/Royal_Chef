@@ -11,8 +11,8 @@ const { protectAdmin } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// TEMPORARY: Browser testing
-router.get('/login', login);
+// LOGIN ROUTE
+router.post('/login', login);
 
 // Protected Routes
 router.get('/dashboard/stats', protectAdmin, getStats);
