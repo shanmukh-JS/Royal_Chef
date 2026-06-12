@@ -1,10 +1,31 @@
 const express = require('express');
-const { login } = require('../controllers/adminController');
+const { body } = require('express-validator');
+const {
+  login,
+  getStats,
+  getDailyReport,
+  getWeeklyReport,
+  getMonthlyReport
+} = require('../controllers/adminController');
+
+const { protectAdmin } = require('../middleware/authMiddleware');
+const { validate } = require('../middleware/validationMiddleware');
 
 const router = express.Router();
 
-console.log('ADMIN ROUTES LOADED');
+router.post(
+  '/login',
+  [
+    body('email').isEmail(),
+    body('password').notEmpty()
+  ],
+  validate,
+  login
+);
 
-router.post('/login', login);
+router.get('/dashboard/stats', protectAdmin, getStats);
+router.get('/reports/daily', protectAdmin, getDailyReport);
+router.get('/reports/weekly', protectAdmin, getWeeklyReport);
+router.get('/reports/monthly', protectAdmin, getMonthlyReport);
 
 module.exports = router;
