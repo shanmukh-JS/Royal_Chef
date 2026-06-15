@@ -11,6 +11,13 @@ export default function OrderManagement() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+  
+  const [isReversed, setIsReversed] = useState(false);
+
+  const displayedOrders = React.useMemo(() => {
+    if (!isReversed) return orders;
+    return [...orders].sort((a, b) => b.table_number - a.table_number);
+  }, [orders, isReversed]);
 
   const fetchOrders = async (silent = false) => {
     try {
@@ -96,13 +103,25 @@ export default function OrderManagement() {
           <h2 className="text-xl font-bold text-white tracking-wide">Customer Orders Dispatch</h2>
           <p className="text-xs text-slate-500">Track and dispatch incoming tables orders live.</p>
         </div>
-        <button
-          onClick={() => fetchOrders()}
-          className="flex items-center space-x-2 text-xs font-semibold bg-slate-850 hover:bg-slate-800 text-slate-200 px-4 py-2.5 rounded-xl border border-slate-800 transition-colors"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          <span>Refresh Orders</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setIsReversed(!isReversed)}
+            className={`flex items-center space-x-2 text-xs font-semibold px-4 py-2.5 rounded-xl border transition-colors ${
+              isReversed 
+                ? 'bg-restaurant-gold/20 text-restaurant-gold border-restaurant-gold/30' 
+                : 'bg-slate-850 hover:bg-slate-800 text-slate-200 border-slate-800'
+            }`}
+          >
+            <span>Reverse Table Number</span>
+          </button>
+          <button
+            onClick={() => fetchOrders()}
+            className="flex items-center space-x-2 text-xs font-semibold bg-slate-850 hover:bg-slate-800 text-slate-200 px-4 py-2.5 rounded-xl border border-slate-800 transition-colors"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span>Refresh Orders</span>
+          </button>
+        </div>
       </div>
 
       {/* Main orders table */}
@@ -130,7 +149,7 @@ export default function OrderManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/40 text-slate-350">
-                {orders.map((o) => (
+                {displayedOrders.map((o) => (
                   <tr key={o.id} className="hover:bg-slate-900/30 transition-colors">
                     
                     {/* ID */}
